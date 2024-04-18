@@ -1,8 +1,7 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
-# More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
 
-name: Build and deploy Python app to Azure Web App - GhibliAPIMarko
+name: Build and deploy JAR app to Azure Web App - GhibliAPIMarko
 
 on:
   push:
@@ -17,31 +16,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python version
-        uses: actions/setup-python@v1
+      - name: Set up Java version
+        uses: actions/setup-java@v1
         with:
-          python-version: '3.12'
+          java-version: 'java21'
 
-      - name: Create and start virtual environment
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-      
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-        
-      # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
+      - name: Build with Maven
+        run: mvn clean install
 
-      - name: Zip artifact for deployment
-        run: zip release.zip ./* -r
-
-      - name: Upload artifact for deployment jobs
+      - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v3
         with:
-          name: python-app
-          path: |
-            release.zip
-            !venv/
+          name: java-app
+          path: '${{ github.workspace }}/target/*.jar'
 
   deploy:
     runs-on: ubuntu-latest
@@ -51,28 +38,25 @@ jobs:
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
       id-token: write #This is required for requesting the JWT
-
+  
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v3
         with:
-          name: python-app
-
-      - name: Unzip artifact for deployment
-        run: unzip release.zip
-
+          name: java-app
       
       - name: Login to Azure
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_C53E3EA35DB34EFAB8E1A4CE77E3B623 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_6BBCFA826E814BBD955D563EBF35C0B9 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_6FD616067F894BA49A8CFC45DD876F50 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_96B1C65F97574882BDE6D47768F0C01A }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_87278D6905914656A53D55CA4033397A }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_981FEC5C62AE4BB79B6B6531546E4E7C }}
 
-      - name: 'Deploy to Azure Web App'
-        uses: azure/webapps-deploy@v2
+      - name: Deploy to Azure Web App
         id: deploy-to-webapp
+        uses: azure/webapps-deploy@v2
         with:
           app-name: 'GhibliAPIMarko'
           slot-name: 'Production'
+          package: '*.jar'
           
