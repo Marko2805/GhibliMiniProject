@@ -1,7 +1,7 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: Build and deploy JAR app to Azure Web App - GhibliAPIMarko
+name: Build and deploy Node.js app to Azure Web App - GhibliAPIMarko
 
 on:
   push:
@@ -16,19 +16,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Java version
-        uses: actions/setup-java@v1
+      - name: Set up Node.js version
+        uses: actions/setup-node@v3
         with:
-          java-version: 'java21'
+          node-version: '20.x'
 
-      - name: Build with Maven
-        run: mvn clean install
+      - name: npm install, build, and test
+        run: |
+          npm install
+          npm run build --if-present
+          npm run test --if-present
+
+      - name: Zip artifact for deployment
+        run: zip release.zip ./* -r
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v3
         with:
-          name: java-app
-          path: '${{ github.workspace }}/target/*.jar'
+          name: node-app
+          path: release.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -38,25 +44,28 @@ jobs:
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
       id-token: write #This is required for requesting the JWT
-  
+
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v3
         with:
-          name: java-app
+          name: node-app
+
+      - name: Unzip artifact for deployment
+        run: unzip release.zip
       
       - name: Login to Azure
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_96B1C65F97574882BDE6D47768F0C01A }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_87278D6905914656A53D55CA4033397A }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_981FEC5C62AE4BB79B6B6531546E4E7C }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_8C3F5FE6E22C47E98A42A117E4CE0E50 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_9764D925DDAB4B7EB012C7E8A60C0C9A }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_555F636AA0C14581B1B26F9C5B7655C3 }}
 
-      - name: Deploy to Azure Web App
+      - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v2
         with:
           app-name: 'GhibliAPIMarko'
           slot-name: 'Production'
-          package: '*.jar'
+          package: .
           
